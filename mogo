@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="墨稿">
+<meta name="theme-color" content="#0f0e0d">
+<title>墨稿 — 小说创作</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0f0e0d;
+    --bg2: #181714;
+    --bg3: #221f1b;
+    --bg4: #2d2924;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8e0d0;
+    --text2: #a09880;
+    --text3: #6b6050;
+    --accent: #c9a96e;
+    --accent2: #8b6f47;
+    --danger: #c96e6e;
+    --serif: 'Georgia', 'Noto Serif SC', 'Source Han Serif CN', serif;
+    --sans: -apple-system, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* TOP BAR */
+  #topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    height: 50px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    -webkit-user-select: none;
+  }
+  #logo {
+    font-family: var(--serif);
+    font-size: 17px;
+    color: var(--accent);
+    letter-spacing: 4px;
+    flex-shrink: 0;
+  }
+  #doc-title-input {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 0;
+    outline: none;
+    transition: background 0.2s;
+  }
+  #doc-title-input:focus { background: var(--bg3); }
+  #doc-title-input::placeholder { color: var(--text3); }
+  .topbar-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: var(--sans);
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .topbar-btn:hover, .topbar-btn:active { background: var(--bg3); color: var(--text); }
+  .topbar-btn.accent { border-color: var(--accent2); color: var(--accent); }
+  .topbar-btn.accent:hover { background: rgba(201,169,110,0.1); }
+  #autosave-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: background 0.4s;
+    flex-shrink: 0;
+  }
+  #autosave-dot.saved { background: #6eb87a; }
+  #autosave-dot.saving { background: var(--accent); }
+
+  /* MAIN LAYOUT */
+  #main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.25s, min-width 0.25s, opacity 0.25s;
+  }
+  #sidebar.collapsed { width: 0; min-width: 0; opacity: 0; }
+  #sidebar-header {
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  #sidebar-header span { font-size: 11px; color: var(--text3); letter-spacing: 2px; }
+  #new-doc-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+  #new-doc-btn:hover { background: var(--bg3); }
+  #doc-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+  #doc-list::-webkit-scrollbar { width: 3px; }
+  #doc-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+  .doc-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .doc-item:hover { background: var(--bg3); }
+  .doc-item.active { border-left-color: var(--accent); background: var(--bg3); }
+  .doc-item-left { flex: 1; min-width: 0; }
+  .doc-item-title {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+  .doc-item-meta {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+    display: block;
+  }
+  .doc-delete {
+    background: transparent;
+    border: none;
+    color: var(--text3);
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .doc-item:hover .doc-delete { opacity: 1; }
+  .doc-delete:hover { color: var(--danger); }
+  #sidebar-footer {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  /* EDITOR AREA */
+  #editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #editor-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 56px 0 80px;
+    display: flex;
+    justify-content: center;
+  }
+  #editor-scroll::-webkit-scrollbar { width: 4px; }
+  #editor-scroll::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+  #editor { width: 100%; max-width: 700px; padding: 0 44px; }
+  #text-area {
+    width: 100%;
+    min-height: 70vh;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 2.0;
+    resize: none;
+    caret-color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  #text-area::placeholder { color: var(--text3); font-style: italic; }
+  #text-area::selection { background: rgba(201,169,110,0.2); }
+
+  /* STATUS BAR */
+  #statusbar {
+    height: 34px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 16px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .status-item { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .status-item strong { color: var(--text2); font-weight: 500; }
+  #toolbar-strip { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .strip-btn {
+    background: transparent;
+    border: none;
+    color: var(--text3);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--sans);
+    white-space: nowrap;
+  }
+  .strip-btn:hover { background: var(--bg3); color: var(--text2); }
+  #font-slider {
+    -webkit-appearance: none;
+    width: 72px; height: 3px;
+    background: var(--bg4);
+    border-radius: 2px;
+    outline: none;
+  }
+  #font-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  /* FOCUS MODE */
+  body.focus-mode #sidebar { width: 0; min-width: 0; opacity: 0; }
+  body.focus-mode #topbar { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+  body.focus-mode #statusbar { opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+  body.focus-mode:hover #topbar { opacity: 1; pointer-events: all; }
+  body.focus-mode:hover #statusbar { opacity: 1; pointer-events: all; }
+  #topbar, #statusbar { transition: opacity 0.3s; }
+
+  /* SYNC PANEL */
+  #sync-panel {
+    position: fixed;
+    top: 62px; right: 14px;
+    width: 310px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 18px;
+    display: none;
+    z-index: 200;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+  #sync-panel.visible { display: block; }
+  #sync-panel h3 { font-size: 13px; color: var(--accent); margin-bottom: 14px; font-weight: 500; letter-spacing: 1px; }
+  .sync-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sync-row label { font-size: 12px; color: var(--text2); flex: 1; }
+  .sync-status {
+    font-size: 11px; padding: 3px 9px;
+    border-radius: 3px; background: var(--bg4); color: var(--text3);
+  }
+  .sync-status.ok { background: rgba(110,184,122,0.15); color: #6eb87a; }
+  .sync-btn {
+    width: 100%; padding: 9px;
+    background: rgba(201,169,110,0.08);
+    border: 1px solid var(--accent2);
+    color: var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-top: 8px;
+    font-family: var(--sans);
+    transition: background 0.15s;
+    text-align: center;
+  }
+  .sync-btn:hover { background: rgba(201,169,110,0.18); }
+  .sync-note {
+    font-size: 11px; color: var(--text3);
+    margin-top: 12px; line-height: 1.7;
+    padding: 10px; background: var(--bg4);
+    border-radius: 5px;
+  }
+  #sync-close {
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: none;
+    color: var(--text3); font-size: 18px; cursor: pointer;
+    line-height: 1;
+  }
+
+  /* GOAL PANEL */
+  #goal-bar {
+    height: 2px;
+    background: var(--bg4);
+    position: relative;
+    flex-shrink: 0;
+  }
+  #goal-progress {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.4s;
+  }
+
+  /* MOBILE ADJUSTMENTS */
+  @media (max-width: 600px) {
+    #sidebar { display: none !important; }
+    #editor { padding: 0 20px; }
+    #editor-scroll { padding: 30px 0 60px; }
+    #statusbar { gap: 10px; }
+    .status-item:nth-child(3) { display: none; }
+    #font-slider { width: 56px; }
+    .strip-btn { padding: 3px 6px; }
+    #topbar { padding: 0 12px; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="logo">墨稿</div>
+  <button class="topbar-btn" id="sidebar-toggle">☰</button>
+  <input id="doc-title-input" type="text" placeholder="作品标题…" maxlength="80" />
+  <div id="autosave-dot" title="自动保存"></div>
+  <button class="topbar-btn" id="focus-btn">专注</button>
+  <button class="topbar-btn accent" id="sync-btn">☁ 同步</button>
+</div>
+
+<!-- GOAL PROGRESS BAR -->
+<div id="goal-bar"><div id="goal-progress"></div></div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <span>作品列表</span>
+      <button id="new-doc-btn" title="新建作品">＋</button>
+    </div>
+    <div id="doc-list"></div>
+    <div id="sidebar-footer" id="sb-footer">
+      <span id="total-docs">0 篇作品</span>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="editor-wrap">
+    <div id="editor-scroll">
+      <div id="editor">
+        <textarea id="text-area" placeholder="从这里开始，写下你的故事……
+
+每次打字后自动保存，不会丢失任何内容。
+点击左上角 ☰ 管理多篇作品，点击「专注」进入沉浸写作模式。"></textarea>
+      </div>
+    </div>
+
+    <!-- STATUS BAR -->
+    <div id="statusbar">
+      <div class="status-item">字数 <strong id="word-count">0</strong></div>
+      <div class="status-item">段落 <strong id="para-count">0</strong></div>
+      <div class="status-item">阅读 <strong id="read-time">0</strong> 分钟</div>
+      <div id="toolbar-strip">
+        <span style="font-size:11px;color:var(--text3);">字号</span>
+        <input type="range" id="font-slider" min="14" max="26" value="18" step="1">
+        <span style="font-size:11px;color:var(--text3);min-width:16px;" id="font-val">18</span>
+        <button class="strip-btn" id="goal-btn" title="设定今日目标字数">目标</button>
+        <button class="strip-btn" id="export-btn" title="导出当前作品">导出</button>
+        <button class="strip-btn" id="import-btn" title="导入 txt 文件">导入</button>
+        <input type="file" id="import-input" accept=".txt,.md" style="display:none">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SYNC PANEL -->
+<div id="sync-panel">
+  <button id="sync-close">×</button>
+  <h3>数据同步 / 备份</h3>
+  <div class="sync-row">
+    <label>本地自动保存</label>
+    <span class="sync-status ok">已启用</span>
+  </div>
+  <div class="sync-row">
+    <label>已用存储空间</label>
+    <span class="sync-status" id="storage-used">—</span>
+  </div>
+  <div class="sync-row">
+    <label>作品数量</label>
+    <span class="sync-status" id="doc-count-panel">—</span>
+  </div>
+  <button class="sync-btn" id="export-all-btn">⬇ 导出全部作品（JSON 备份）</button>
+  <button class="sync-btn" id="import-all-btn">⬆ 导入备份文件（JSON）</button>
+  <input type="file" id="import-all-input" accept=".json" style="display:none">
+  <div class="sync-note">
+    📱 <strong>跨设备同步方法：</strong><br>
+    导出 JSON → 存入 iCloud Drive 或 Google Drive → 在另一台设备打开墨稿 → 导入该文件，即可恢复全部作品。
+  </div>
+</div>
+
+<!-- GOAL MODAL -->
+<div id="goal-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:24px;width:280px;">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">设定今日写作目标（字数）</p>
+    <input id="goal-input" type="number" min="100" max="100000" placeholder="例如：1000"
+      style="width:100%;background:var(--bg4);border:1px solid var(--border2);color:var(--text);
+      font-size:15px;padding:8px 12px;border-radius:6px;outline:none;font-family:var(--sans);margin-bottom:14px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="setGoal()" style="flex:1;padding:8px;background:rgba(201,169,110,0.1);border:1px solid var(--accent2);
+        color:var(--accent);border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:13px;">确定</button>
+      <button onclick="closeGoal()" style="flex:1;padding:8px;background:transparent;border:1px solid var(--border2);
+        color:var(--text2);border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:13px;">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DB_KEY = 'mogao_v2_docs';
+const ACTIVE_KEY = 'mogao_v2_active';
+const GOAL_KEY = 'mogao_v2_goal';
+
+let docs = {};
+let activeId = null;
+let saveTimer = null;
+let wordGoal = parseInt(localStorage.getItem(GOAL_KEY) || '0');
+
+function loadFromStorage() {
+  try { docs = JSON.parse(localStorage.getItem(DB_KEY) || '{}'); }
+  catch(e) { docs = {}; }
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(docs));
+    localStorage.setItem(ACTIVE_KEY, activeId || '');
+  } catch(e) { alert('存储空间不足，请导出备份后清理'); }
+}
+
+function genId() {
+  return 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+}
+
+function newDoc(title, content) {
+  const id = genId();
+  docs[id] = { id, title: title||'无题', content: content||'', created: Date.now(), updated: Date.now() };
+  return id;
+}
+
+function deleteDoc(id) {
+  if (!confirm('确定删除「' + docs[id].title + '」吗？此操作不可撤销。')) return;
+  delete docs[id];
+  saveToStorage();
+  const ids = Object.keys(docs);
+  if (!ids.length) {
+    const nid = newDoc('我的第一篇小说', '');
+    saveToStorage();
+    loadDoc(nid);
+  } else {
+    loadDoc(ids.sort((a,b)=>docs[b].updated - docs[a].updated)[0]);
+  }
+  renderSidebar();
+}
+
+function loadDoc(id) {
+  if (!docs[id]) return;
+  saveCurrentDoc(true);
+  activeId = id;
+  const d = docs[id];
+  document.getElementById('doc-title-input').value = d.title === '无题' ? '' : d.title;
+  document.getElementById('text-area').value = d.content;
+  resizeTA();
+  updateStats();
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('doc-list');
+  const ids = Object.keys(docs).sort((a,b) => docs[b].updated - docs[a].updated);
+  list.innerHTML = ids.map(id => {
+    const d = docs[id];
+    const dt = new Date(d.updated);
+    const dateStr = `${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const chars = d.content.replace(/\s/g,'').length;
+    const active = id === activeId ? ' active' : '';
+    return `<div class="doc-item${active}" data-id="${id}">
+      <div class="doc-item-left">
+        <span class="doc-item-title">${esc(d.title)}</span>
+        <span class="doc-item-meta">${dateStr} · ${chars.toLocaleString()} 字</span>
+      </div>
+      <button class="doc-delete" data-del="${id}">×</button>
+    </div>`;
+  }).join('');
+  document.getElementById('total-docs').textContent = ids.length + ' 篇作品';
+  list.querySelectorAll('.doc-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if (e.target.closest('.doc-delete')) return;
+      loadDoc(el.dataset.id);
+    });
+  });
+  list.querySelectorAll('.doc-delete').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteDoc(btn.dataset.del); });
+  });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function saveCurrentDoc(instant) {
+  if (!activeId || !docs[activeId]) return;
+  docs[activeId].title = document.getElementById('doc-title-input').value.trim() || '无题';
+  docs[activeId].content = document.getElementById('text-area').value;
+  docs[activeId].updated = Date.now();
+  if (instant) { saveToStorage(); return; }
+  const dot = document.getElementById('autosave-dot');
+  dot.className = 'saving';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveToStorage();
+    dot.className = 'saved';
+    setTimeout(() => { dot.className = ''; }, 2000);
+    renderSidebar();
+  }, 900);
+}
+
+function updateStats() {
+  const text = document.getElementById('text-area').value;
+  const chars = text.replace(/\s/g,'').length;
+  const paras = text.split(/\n+/).filter(p => p.trim().length > 0).length;
+  const mins = Math.max(1, Math.round(chars / 400));
+  document.getElementById('word-count').textContent = chars.toLocaleString();
+  document.getElementById('para-count').textContent = paras;
+  document.getElementById('read-time').textContent = mins;
+  if (wordGoal > 0) {
+    const pct = Math.min(100, Math.round(chars / wordGoal * 100));
+    document.getElementById('goal-progress').style.width = pct + '%';
+  }
+}
+
+function calcStorage() {
+  try {
+    const raw = localStorage.getItem(DB_KEY) || '';
+    const kb = (new Blob([raw]).size / 1024).toFixed(1);
+    const el = document.getElementById('storage-used');
+    el.textContent = kb + ' KB';
+    el.className = 'sync-status ok';
+    document.getElementById('doc-count-panel').textContent = Object.keys(docs).length + ' 篇';
+    document.getElementById('doc-count-panel').className = 'sync-status ok';
+  } catch(e) {}
+}
+
+function exportAll() {
+  saveCurrentDoc(true);
+  const data = { version: 2, app: '墨稿', exported: new Date().toISOString(), docs };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = `墨稿备份_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+}
+
+function importAll(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.docs) { alert('文件格式不正确'); return; }
+      const count = Object.keys(data.docs).length;
+      if (!confirm(`发现 ${count} 篇作品，导入后将与现有作品合并（不会覆盖）。确认继续？`)) return;
+      Object.assign(docs, data.docs);
+      saveToStorage();
+      renderSidebar();
+      alert(`✓ 导入成功，共 ${count} 篇作品`);
+    } catch(e) { alert('文件解析失败，请确认是墨稿导出的 JSON 文件'); }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function exportCurrent() {
+  saveCurrentDoc(true);
+  if (!activeId) return;
+  const d = docs[activeId];
+  const blob = new Blob([d.content], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (d.title || '无题') + '.txt';
+  a.click();
+}
+
+function importTxt(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const id = newDoc(file.name.replace(/\.(txt|md)$/i,''), e.target.result);
+    saveToStorage();
+    loadDoc(id);
+    renderSidebar();
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function setGoal() {
+  const v = parseInt(document.getElementById('goal-input').value);
+  if (v > 0) {
+    wordGoal = v;
+    localStorage.setItem(GOAL_KEY, v);
+    document.getElementById('goal-modal').style.display = 'none';
+    updateStats();
+  }
+}
+function closeGoal() {
+  document.getElementById('goal-modal').style.display = 'none';
+}
+
+function resizeTA() {
+  const ta = document.getElementById('text-area');
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(ta.scrollHeight, window.innerHeight * 0.65) + 'px';
+}
+
+// --- INIT ---
+loadFromStorage();
+const savedActive = localStorage.getItem(ACTIVE_KEY);
+if (Object.keys(docs).length === 0) {
+  const id = newDoc('我的第一篇小说', '');
+  saveToStorage();
+  loadDoc(id);
+} else {
+  const ids = Object.keys(docs);
+  const target = (savedActive && docs[savedActive]) ? savedActive : ids.sort((a,b)=>docs[b].updated-docs[a].updated)[0];
+  loadDoc(target);
+}
+renderSidebar();
+
+// --- EVENT LISTENERS ---
+const ta = document.getElementById('text-area');
+ta.addEventListener('input', () => { updateStats(); saveCurrentDoc(); resizeTA(); });
+document.getElementById('doc-title-input').addEventListener('input', () => saveCurrentDoc());
+
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+});
+
+document.getElementById('new-doc-btn').addEventListener('click', () => {
+  saveCurrentDoc(true);
+  const id = newDoc('', '');
+  saveToStorage();
+  loadDoc(id);
+  renderSidebar();
+  setTimeout(() => document.getElementById('doc-title-input').focus(), 60);
+});
+
+document.getElementById('focus-btn').addEventListener('click', () => {
+  document.body.classList.toggle('focus-mode');
+  document.getElementById('focus-btn').textContent =
+    document.body.classList.contains('focus-mode') ? '退出专注' : '专注';
+});
+
+document.getElementById('sync-btn').addEventListener('click', () => {
+  const p = document.getElementById('sync-panel');
+  p.classList.toggle('visible');
+  if (p.classList.contains('visible')) calcStorage();
+});
+document.getElementById('sync-close').addEventListener('click', () => {
+  document.getElementById('sync-panel').classList.remove('visible');
+});
+document.getElementById('export-all-btn').addEventListener('click', exportAll);
+document.getElementById('import-all-btn').addEventListener('click', () => document.getElementById('import-all-input').click());
+document.getElementById('import-all-input').addEventListener('change', e => { if(e.target.files[0]) importAll(e.target.files[0]); e.target.value=''; });
+
+document.getElementById('export-btn').addEventListener('click', exportCurrent);
+document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-input').click());
+document.getElementById('import-input').addEventListener('change', e => { if(e.target.files[0]) importTxt(e.target.files[0]); e.target.value=''; });
+
+document.getElementById('goal-btn').addEventListener('click', () => {
+  document.getElementById('goal-input').value = wordGoal || '';
+  document.getElementById('goal-modal').style.display = 'flex';
+});
+
+const fontSlider = document.getElementById('font-slider');
+fontSlider.addEventListener('input', () => {
+  const v = fontSlider.value;
+  document.getElementById('font-val').textContent = v;
+  ta.style.fontSize = v + 'px';
+});
+
+window.addEventListener('beforeunload', () => saveCurrentDoc(true));
+window.addEventListener('resize', resizeTA);
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveCurrentDoc(true); }
+});
+</script>
+</body>
+</html>
